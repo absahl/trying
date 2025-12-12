@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Time::HiRes;
 use Log::Log4perl;
+use Scalar::Util qw(looks_like_number);
 use Fcntl qw(:flock FD_CLOEXEC F_GETFD F_SETFD);
 
 my $LOCK_FILE = 'file.lock';
@@ -32,9 +33,9 @@ sub disable_inheritance_on_file_handle {
 	}
 	$logger->info("Flags obtained for file descriptor [$fd] [flags:$flags]");
 
-	my $new_flags = $flags | FD_CLOEXEC;
+	my $new_flags = ($flags + 0) | (FD_CLOEXEC + 0); # force IV
 	$logger->debug("Setting FD_CLOEXEC on file descriptor [$fd] [new_flags:$new_flags]");
-	unless (fcntl($fh, F_SETFD, $new_flags)) {
+	unless (fcntl($fh, F_SETFD, $new_flags + 0)) { # force IV
 		$logger->error("Failed to set FD_CLOEXEC on file descriptor [$fd] [new_flags:$new_flags] [err:$!]");
 		return 0;
 	}
