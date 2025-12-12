@@ -1,3 +1,0 @@
-/Users/saadabdulmajid/practicing/cpp/file_lock_inheritance/build/CMakeFiles/file_lock_fork.dir
-/Users/saadabdulmajid/practicing/cpp/file_lock_inheritance/build/CMakeFiles/edit_cache.dir
-/Users/saadabdulmajid/practicing/cpp/file_lock_inheritance/build/CMakeFiles/rebuild_cache.dir

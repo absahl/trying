@@ -83,8 +83,6 @@ if ($pid == -1) {
 	exit 1;
 } elsif ($pid == 0) {
 	$logger->info("Child process started");
-	flock($lock_fh, LOCK_UN);
-	close($lock_fh);
 	exec('sleep', '30');
 	# while (1) {
 	# 	$logger->debug("Child process waiting for 1 second");
