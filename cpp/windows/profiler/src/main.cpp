@@ -1,57 +1,170 @@
+#include <thread>
+#include <chrono>
 #include <windows.h>
 #include <psapi.h>
 #include <iphlpapi.h>
 #include <iostream>
+#include <iomanip>
+#include <spdlog/spdlog.h>
 
-int main() {
-    // --- CPU before ---
-    ULONG64 cpuStart = 0;
-    QueryProcessCycleTime(GetCurrentProcess(), &cpuStart);
+using namespace std::chrono_literals;
 
-    // --- Memory before ---
-    PROCESS_MEMORY_COUNTERS_EX memStart{};
-    GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&memStart, sizeof(memStart));
+struct SystemTime final
+{
+    uint64_t mIdleTime{};
+    uint64_t mKernelTime{}; // includes idle time as well
+    uint64_t mUserTime{};
+    bool mIsInitialized{ false };
 
-    // --- Network before ---
-    DWORD size = 0;
-    GetIfTable(nullptr, &size, false);
-    MIB_IFTABLE* ifTableStart = (MIB_IFTABLE*)malloc(size);
-    GetIfTable(ifTableStart, &size, false);
-    MIB_IFROW netStart{};
-    if (ifTableStart->dwNumEntries > 0) {
-        netStart = ifTableStart->table[0]; // first adapter
+    SystemTime() noexcept
+    {
+        FILETIME idleTime{};
+        FILETIME kernelTime{};
+        FILETIME userTime{};
+
+        spdlog::debug("Getting aggregated system time over all cores");
+        if (GetSystemTimes(&idleTime, &kernelTime, &userTime) == 0)
+        {
+            spdlog::error("Failed to get aggregated system time over all cores [{}]", GetLastError());
+            return;
+        }
+
+        mIdleTime = static_cast<uint64_t>(idleTime.dwHighDateTime) << 32 | idleTime.dwLowDateTime;
+        mKernelTime = static_cast<uint64_t>(kernelTime.dwHighDateTime) << 32 | kernelTime.dwLowDateTime;
+        mUserTime = static_cast<uint64_t>(userTime.dwHighDateTime) << 32 | userTime.dwLowDateTime;
+        mIsInitialized = true;
     }
 
-    // --- Code block to profile ---
-    std::cout << "Hello World!" << std::endl;
-
-    // --- CPU after ---
-    ULONG64 cpuEnd = 0;
-    QueryProcessCycleTime(GetCurrentProcess(), &cpuEnd);
-
-    // --- Memory after ---
-    PROCESS_MEMORY_COUNTERS_EX memEnd{};
-    GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&memEnd, sizeof(memEnd));
-
-    // --- Network after ---
-    DWORD sizeAfter = 0;
-    GetIfTable(nullptr, &sizeAfter, false);
-    MIB_IFTABLE* ifTableEnd = (MIB_IFTABLE*)malloc(sizeAfter);
-    GetIfTable(ifTableEnd, &sizeAfter, false);
-    MIB_IFROW netEnd{};
-    if (ifTableEnd->dwNumEntries > 0) {
-        netEnd = ifTableEnd->table[0]; // first adapter
+    SystemTime(const uint64_t idleTime, const uint64_t kernelTime, const uint64_t userTime) noexcept : mIdleTime(idleTime), mKernelTime(kernelTime), mUserTime(userTime)
+    {
     }
 
-    // --- Report deltas ---
-    std::cout << "CPU cycles used: " << (cpuEnd - cpuStart) << std::endl;
-    std::cout << "Memory delta (bytes): " << (memEnd.WorkingSetSize - memStart.WorkingSetSize) << std::endl;
-    std::cout << "Network sent delta (bytes): " << (netEnd.dwOutOctets - netStart.dwOutOctets) << std::endl;
-    std::cout << "Network received delta (bytes): " << (netEnd.dwInOctets - netStart.dwInOctets) << std::endl;
+    bool operator!() const noexcept
+    {
+        return !mIsInitialized;
+    }
 
-    // --- Cleanup ---
-    free(ifTableStart);
-    free(ifTableEnd);
+    SystemTime operator-(const SystemTime& st) const noexcept
+    {
+        return SystemTime{mIdleTime - st.mIdleTime, mKernelTime - st.mKernelTime, mUserTime - st.mUserTime};
+    }
+
+    void print() const noexcept
+    {
+        spdlog::debug("SystemTime - idle [{}], kernel [{}], realKernel [{}], user [{}]", mIdleTime, mKernelTime, mKernelTime - mIdleTime, mUserTime);
+    }
+
+    uint64_t total() const noexcept
+    {
+        return mKernelTime + mUserTime;
+    }
+
+    double seconds() const noexcept
+    {
+        return (static_cast<double>(mKernelTime) + mUserTime) / 1e7;
+    }
+};
+
+struct ProcessTime final
+{
+    uint64_t mKernelTime{};
+    uint64_t mUserTime{};
+    bool mIsInitialized{ false };
+
+    ProcessTime() noexcept
+    {
+        FILETIME creationTime{};
+        FILETIME exitTime{};
+        FILETIME kernelTime{};
+        FILETIME userTime{};
+
+        spdlog::debug("Getting process time over all cores");
+        if (GetProcessTimes(GetCurrentProcess(), &creationTime, &exitTime, &kernelTime, &userTime) == 0)
+        {
+            spdlog::error("Failed to get process time over all cores [{}]", GetLastError());
+            return;
+        }
+
+        mKernelTime = static_cast<uint64_t>(kernelTime.dwHighDateTime) << 32 | kernelTime.dwLowDateTime;
+        mUserTime = static_cast<uint64_t>(userTime.dwHighDateTime) << 32 | userTime.dwLowDateTime;
+        mIsInitialized = true;
+    }
+
+    ProcessTime(const uint64_t kernelTime, const uint64_t userTime) noexcept : mKernelTime(kernelTime), mUserTime(userTime)
+    {
+    }
+
+    bool operator!() const noexcept
+    {
+        return !mIsInitialized;
+    }
+
+    ProcessTime operator-(const ProcessTime& pt) const noexcept
+    {
+        return ProcessTime{ mKernelTime - pt.mKernelTime, mUserTime - pt.mUserTime };
+    }
+
+    void print() const noexcept
+    {
+        spdlog::debug("ProcessTime - kernel [{}], user [{}]", mKernelTime, mUserTime);
+    }
+
+    uint64_t total() const noexcept
+    {
+        return mKernelTime + mUserTime;
+    }
+
+    double seconds() const noexcept
+    {
+        return (static_cast<double>(mKernelTime) + mUserTime) / 1e7;
+    }
+};
+
+class Profiler final
+{
+public:
+    Profiler(const std::string& name) noexcept : mName(name)
+    {
+    }
+
+    ~Profiler() noexcept
+    {
+        SystemTime systemTimeAtEnd{};
+        ProcessTime processTimeAtEnd{};
+        if (!systemTimeAtEnd || !processTimeAtEnd || !mSystemTimeAtStart || !mProcessTimeAtStart)
+        {
+            spdlog::error("[PROFILER:{}] Failed to compute cpu load as objects failed to initialize", mName);
+            return;
+        }
+
+        // difference
+        const auto systemTimeDiff = systemTimeAtEnd - mSystemTimeAtStart;
+        const auto processTimeDiff = processTimeAtEnd - mProcessTimeAtStart;
+
+        // compute load
+        const auto cpuLoad = (static_cast<double>(processTimeDiff.total()) / systemTimeDiff.total()) * 100;
+        spdlog::debug("[PROFILER:{}] cpu load: {:.2f}", mName, cpuLoad);
+
+        // compute peak memory usage
+        GetProcessMemoryInfo();
+    }
+private:
+    SystemTime mSystemTimeAtStart{};
+    ProcessTime mProcessTimeAtStart{};
+    std::string mName{};
+};
+
+int main()
+{
+    spdlog::set_level(spdlog::level::trace);
+    spdlog::debug("Allah Hu");
+
+    // code block
+    {
+        Profiler profiler{"Testing"};
+        volatile int x = 0;
+        for (int i = 0; i < 200'000'000; i++) x += i;
+    }
 
     return 0;
 }
