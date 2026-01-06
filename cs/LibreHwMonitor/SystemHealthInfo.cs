@@ -9,7 +9,7 @@ struct SystemHealthInfo
     private MemoryHealthInfo _memoryHealthInfo;
     private GPUHealthInfo _gpuHealthInfo;
     private StorageHealthInfo _storageHealthInfo;
-    private NetworkHealthInfo _networkHealthInfo;
+    private IList<NetworkHealthInfo> _networkHealthInfoList = new List<NetworkHealthInfo>();
 
     public SystemHealthInfo()
     {
@@ -51,7 +51,7 @@ struct SystemHealthInfo
                     break;
                 case HardwareType.Network:
                     Console.WriteLine($"Found Network: {hardware.Name}");
-                    _networkHealthInfo = new NetworkHealthInfo(hardware);
+                    _networkHealthInfoList.Add(new NetworkHealthInfo(hardware));
                     break;
                 default:
                     Console.WriteLine($"Invalid hardware type: {hardware.HardwareType}");
@@ -70,7 +70,10 @@ struct SystemHealthInfo
         _memoryHealthInfo.Display();
         _gpuHealthInfo.Display();
         _storageHealthInfo.Display();
-        _networkHealthInfo.Display();
+        foreach (var networkHealthInfo in _networkHealthInfoList)
+        {
+            networkHealthInfo.Display();
+        }
         Console.WriteLine("----------- System health info <&End&> -----------");
         Console.WriteLine();
     }
