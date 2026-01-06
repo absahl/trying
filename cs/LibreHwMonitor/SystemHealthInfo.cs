@@ -8,6 +8,7 @@ struct SystemHealthInfo
     private CPUHealthInfo _cpuHealthInfo;
     private MemoryHealthInfo _memoryHealthInfo;
     private GPUHealthInfo _gpuHealthInfo;
+    private StorageHealthInfo _storageHealthInfo;
 
     public SystemHealthInfo()
     {
@@ -21,7 +22,7 @@ struct SystemHealthInfo
             //IsMotherboardEnabled = true,
             //IsControllerEnabled = true,
             //IsNetworkEnabled = true,
-            //IsStorageEnabled = true
+            IsStorageEnabled = true
         };
         _computer.Open();
 
@@ -43,6 +44,10 @@ struct SystemHealthInfo
                     Console.WriteLine($"Found GPU: {hardware.Name}");
                     _gpuHealthInfo = new GPUHealthInfo(hardware);
                     break;
+                case HardwareType.Storage:
+                    Console.WriteLine($"Found Storage: {hardware.Name}");
+                    _storageHealthInfo = new StorageHealthInfo(hardware);
+                    break;
                 default:
                     Console.WriteLine($"Invalid hardware type: {hardware.HardwareType}");
                     continue;
@@ -59,6 +64,7 @@ struct SystemHealthInfo
         _cpuHealthInfo.Display();
         _memoryHealthInfo.Display();
         _gpuHealthInfo.Display();
+        _storageHealthInfo.Display();
         Console.WriteLine("----------- System health info <&End&> -----------");
         Console.WriteLine();
     }

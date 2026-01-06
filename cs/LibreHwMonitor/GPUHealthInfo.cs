@@ -41,6 +41,7 @@ internal struct GPUHealthInfo
                     ReadLoadSensors(sensor);
                     break;
                 case SensorType.Data:
+                case SensorType.SmallData:
                     ReadDataSensors(sensor);
                     break;
                 default:
@@ -137,8 +138,8 @@ internal struct GPUHealthInfo
         Console.WriteLine("Video engine load: {0}%", _videoEngineLoad.HasValue ? _videoEngineLoad.Value : "");
         Console.WriteLine("Memory load: {0}%", _memoryLoad.HasValue ? _memoryLoad.Value : "");
         Console.WriteLine("Bus load: {0}%", _busLoad.HasValue ? _busLoad.Value : "");
-        Console.WriteLine("Memory available: {0}GB", _memoryAvailable.HasValue ? _memoryAvailable.Value : "");
-        Console.WriteLine("Memory used: {0}GB", _memoryUsed.HasValue ? _memoryUsed.Value : "");
+        Console.WriteLine("Memory available: {0}MB", _memoryAvailable.HasValue ? _memoryAvailable.Value : "");
+        Console.WriteLine("Memory used: {0}MB", _memoryUsed.HasValue ? _memoryUsed.Value : "");
         Console.WriteLine("----- GPU health info <&End&> -----");
         Console.WriteLine();
     }
