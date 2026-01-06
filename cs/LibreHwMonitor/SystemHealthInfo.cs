@@ -10,6 +10,7 @@ struct SystemHealthInfo
     private GPUHealthInfo _gpuHealthInfo;
     private StorageHealthInfo _storageHealthInfo;
     private IList<NetworkHealthInfo> _networkHealthInfoList = new List<NetworkHealthInfo>();
+    private BatteryHealthInfo _batteryHealthInfo;
 
     public SystemHealthInfo()
     {
@@ -23,7 +24,8 @@ struct SystemHealthInfo
             //IsMotherboardEnabled = true,
             //IsControllerEnabled = true,
             IsNetworkEnabled = true,
-            IsStorageEnabled = true
+            IsStorageEnabled = true,
+            IsBatteryEnabled = true
         };
         _computer.Open();
 
@@ -53,6 +55,10 @@ struct SystemHealthInfo
                     Console.WriteLine($"Found Network: {hardware.Name}");
                     _networkHealthInfoList.Add(new NetworkHealthInfo(hardware));
                     break;
+                case HardwareType.Battery:
+                    Console.WriteLine($"Found Battery: {hardware.Name}");
+                    _batteryHealthInfo = new BatteryHealthInfo(hardware);
+                    break;
                 default:
                     Console.WriteLine($"Invalid hardware type: {hardware.HardwareType}");
                     continue;
@@ -74,6 +80,7 @@ struct SystemHealthInfo
         {
             networkHealthInfo.Display();
         }
+        _batteryHealthInfo.Display();
         Console.WriteLine("----------- System health info <&End&> -----------");
         Console.WriteLine();
     }

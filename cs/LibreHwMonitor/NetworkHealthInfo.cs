@@ -50,7 +50,7 @@ internal struct NetworkHealthInfo
         }
     }
 
-    public readonly void Display()
+    public void Display()
     {
         ReadSensors();
         Console.WriteLine();
@@ -58,8 +58,6 @@ internal struct NetworkHealthInfo
         Console.WriteLine("Hardware name: {0}", _hardware.Name);
         Console.WriteLine("Data uploaded: {0}GB", _dataUploaded.HasValue ? _dataUploaded.Value : "");
         Console.WriteLine("Data downloaded: {0}GB", _dataDownloaded.HasValue ? _dataDownloaded.Value : "");
-        Console.WriteLine("Upload speed: {0}", _uploadSpeed.HasValue ? _uploadSpeed.Value : "");
-        Console.WriteLine("Download speed: {0}", _downloadSpeed.HasValue ? _downloadSpeed.Value : "");
         Console.WriteLine("----- Network health info <&End&> -----");
         Console.WriteLine();
     }
