@@ -38,6 +38,9 @@ internal struct BatteryHealthInfo
                 case SensorType.Level:
                     ReadLevelSensors(sensor);
                     break;
+                case SensorType.Energy:
+                    ReadEnergySensors(sensor);
+                    break;
                 default:
                     Console.WriteLine($"Invalid sensor type: {sensor.SensorType}");
                     break;
@@ -77,6 +80,22 @@ internal struct BatteryHealthInfo
         }
     }
 
+    private void ReadEnergySensors(ISensor sensor)
+    {
+        switch (sensor.Name)
+        {
+            case "Designed Capacity":
+                _designedCapacity = sensor.Value;
+                break;
+            case "Fully-Charged Capacity":
+                _fullChargeCapacity = sensor.Value;
+                break;
+            default:
+                Console.WriteLine($"Invalid energy sensor: {sensor.Name} ({sensor.Value})");
+                break;
+        }
+    }
+
     public void Display()
     {
         ReadSensors();
@@ -87,6 +106,8 @@ internal struct BatteryHealthInfo
         Console.WriteLine("Discharge rate: {0}W", _dischargeRate.HasValue ? _dischargeRate.Value : "");
         Console.WriteLine("Charge level: {0}%", _chargeLevel.HasValue ? _chargeLevel.Value : "");
         Console.WriteLine("Degradation level: {0}%", _degradationLevel.HasValue ? _degradationLevel.Value : "");
+        Console.WriteLine("Designed capacity: {0}mWh", _designedCapacity.HasValue ? _designedCapacity.Value : "");
+        Console.WriteLine("Full charge capacity: {0}mWh", _fullChargeCapacity.HasValue ? _fullChargeCapacity.Value : "");
         Console.WriteLine("----- Battery health info <&End&> -----");
         Console.WriteLine();
     }

@@ -2,7 +2,7 @@ using LibreHardwareMonitor.Hardware;
 
 namespace LibreHwMonitor;
 
-struct SystemHealthInfo
+struct SystemHealthInfo : IDisposable
 {
     private readonly Computer _computer;
     private CPUHealthInfo _cpuHealthInfo;
@@ -11,6 +11,8 @@ struct SystemHealthInfo
     private StorageHealthInfo _storageHealthInfo;
     private IList<NetworkHealthInfo> _networkHealthInfoList = new List<NetworkHealthInfo>();
     private BatteryHealthInfo _batteryHealthInfo;
+
+    private bool disposed = false;
 
     public SystemHealthInfo()
     {
@@ -21,8 +23,6 @@ struct SystemHealthInfo
             IsCpuEnabled = true,
             IsGpuEnabled = true,
             IsMemoryEnabled = true,
-            //IsMotherboardEnabled = true,
-            //IsControllerEnabled = true,
             IsNetworkEnabled = true,
             IsStorageEnabled = true,
             IsBatteryEnabled = true
@@ -64,8 +64,16 @@ struct SystemHealthInfo
                     continue;
             }
         }
+    }
 
-        _computer.Close();
+    public void Dispose()
+    {
+        if (!disposed)
+        {
+            Console.WriteLine("Disposing system health info");
+            _computer.Close();
+            disposed = true;
+        }
     }
 
     public readonly void Display()
